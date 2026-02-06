@@ -7,7 +7,7 @@ import pandas as pd
 
 # 1. 페이지 설정
 st.set_page_config(page_title="Mirae Asset TIGER ETF Pro", layout="wide")
-st.title("📈 TIGER ETF 프로 분석기 (RSI & RMI 추가)")
+st.title("📈 TIGER ETF 프로 분석기")
 
 # 2. 보조지표 계산 함수
 def calculate_rsi(df, period=14):
@@ -20,7 +20,6 @@ def calculate_rsi(df, period=14):
     return 100 - (100 / (1 + rs))
 
 def calculate_rmi(df, d=5, n=10):
-    # RMI는 d일 전 가격과의 차이를 이용해 n일 평활화 수행
     delta = df['Close'].diff(d)
     up = delta.clip(lower=0)
     down = -delta.clip(upper=0)
@@ -37,26 +36,25 @@ def get_etf_list():
 
 etf_df = get_etf_list()
 
-# 4. 사이드바 설정
+# 4. 사이드바 설정 (기본값을 '2년'으로 변경: index=3)
 st.sidebar.header("🔍 종목 및 설정")
 selected_name = st.sidebar.selectbox("TIGER ETF 선택", etf_df['Name'])
 selected_code = etf_df[etf_df['Name'] == selected_name]['Symbol'].values[0]
-period_label = st.sidebar.radio("조회 기간", ["3개월", "6개월", "1년", "2년"], index=0)
+period_label = st.sidebar.radio("조회 기간", ["3개월", "6개월", "1년", "2년"], index=3)
 period_map = {"3개월": 90, "6개월": 180, "1년": 365, "2년": 730}
 
 # 5. 데이터 로드 및 계산
 end_date = datetime.now()
-start_date = end_date - timedelta(days=period_map[period_label] + 50) # 보조지표 계산을 위해 여유분 추가
+start_date = end_date - timedelta(days=period_map[period_label] + 50)
 df = fdr.DataReader(selected_code, start_date, end_date)
 
 df['RSI'] = calculate_rsi(df, 14)
 df['RMI'] = calculate_rmi(df, 5, 10)
 df['MA20'] = df['Close'].rolling(window=20).mean()
 
-# 실제 보여줄 기간만 슬라이싱
 df = df.iloc[30:] 
 
-# 6. 차트 생성 (서브플롯: 주가, RSI, RMI)
+# 6. 차트 생성 (서브플롯)
 fig = make_subplots(
     rows=3, cols=1, 
     shared_xaxes=True, 
@@ -71,18 +69,18 @@ fig.add_trace(go.Candlestick(
 ), row=1, col=1)
 fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], line=dict(color='orange', width=1), name='20일선'), row=1, col=1)
 
-# (2) RSI 차트
-fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], line=dict(color='yellow', width=1.5), name='RSI'), row=2, col=1)
+# (2) RSI 차트 (검은색 선 설정)
+fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], line=dict(color='black', width=1.5), name='RSI'), row=2, col=1)
 fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
 fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
 
-# (3) RMI 차트
-fig.add_trace(go.Scatter(x=df.index, y=df['RMI'], line=dict(color='cyan', width=1.5), name='RMI'), row=3, col=1)
+# (3) RMI 차트 (검은색 선 설정)
+fig.add_trace(go.Scatter(x=df.index, y=df['RMI'], line=dict(color='black', width=1.5), name='RMI'), row=3, col=1)
 fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
 fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
 
-# 레이아웃 업데이트
-fig.update_layout(height=800, template="plotly_dark", xaxis_rangeslider_visible=False, showlegend=False)
+# 레이아웃 업데이트 (검은색 선이 잘 보이도록 밝은 테마 적용)
+fig.update_layout(height=800, template="plotly_white", xaxis_rangeslider_visible=False, showlegend=False)
 fig.update_yaxes(title_text="Price", row=1, col=1)
 fig.update_yaxes(title_text="RSI", row=2, col=1)
 fig.update_yaxes(title_text="RMI", row=3, col=1)
@@ -99,4 +97,4 @@ with col2:
     st.write(f"**RSI**: {df['RSI'].iloc[-1]:.1f}")
     st.write(f"**RMI**: {df['RMI'].iloc[-1]:.1f}")
 
-st.caption("RSI 70 이상: 과매수(빨간선), 30 이하: 과매도(초록선) 구간입니다.")
+st.info("차트 초기 범위가 2년으로 설정되었습니다. RSI/RMI 검은색 선을 확인해 보세요.")
