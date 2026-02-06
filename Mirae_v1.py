@@ -54,13 +54,13 @@ df['RMI'] = calculate_rmi(df, 5, 10)
 df['MA20'] = df['Close'].rolling(window=20).mean()
 
 # 실제 보여줄 기간만 슬라이싱
-df = df.iloc[30:]
+df = df.iloc[30:] 
 
 # 6. 차트 생성 (서브플롯: 주가, RSI, RMI)
 fig = make_subplots(
-    rows=3, cols=1,
-    shared_xaxes=True,
-    vertical_spacing=0.05,
+    rows=3, cols=1, 
+    shared_xaxes=True, 
+    vertical_spacing=0.05, 
     row_heights=[0.5, 0.25, 0.25],
     subplot_titles=("주가 및 이동평균선", "RSI (14)", "RMI (5, 10)")
 )
